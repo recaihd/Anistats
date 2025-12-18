@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anistats | Battle Turn</title>
+    <link rel="icon" href="img/icon_site.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --card-bg: rgba(22, 27, 34, 0.7);
+            --primary-pink: #db2777;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --border-color: rgba(30, 41, 59, 0.5);
+        }
+        body {
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background-color: black;
+        }
+        #bg-video {
+            position: fixed; right: 0; bottom: 0;
+            min-width: 100%; min-height: 100%;
+            z-index: -2; object-fit: cover;
+        }
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.8) 100%);
+            z-index: -1;
+        }
+        header { position: absolute; top: 0; width: 100%; padding: 40px; display: flex; justify-content: space-between; max-width: 1200px; z-index: 10; }
+        .logo { font-size: 1.5rem; font-weight: 800; }
+        .logo span { color: var(--primary-pink); text-decoration: underline; }
+        main { text-align: center; max-width: 800px; z-index: 10; }
+        .subtitle { color: var(--primary-pink); font-size: 0.7rem; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 10px; display: block; }
+        h1 { font-size: 4rem; line-height: 0.9; font-weight: 900; margin-bottom: 30px; }
+        h1 span { color: var(--primary-pink); }
+        .preview-flex { display: flex; gap: 15px; justify-content: center; margin-bottom: 40px; }
+        .char-card { background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid var(--border-color); padding: 12px; border-radius: 12px; display: flex; align-items: center; gap: 12px; width: 240px; text-align: left; cursor: pointer; transition: 0.3s; }
+        .char-card:hover { transform: translateY(-5px); border-color: var(--primary-pink); }
+        .char-img { width: 48px; height: 48px; background: #334155; border-radius: 8px; overflow: hidden; border: 1px solid rgba(219, 39, 119, 0.4); }
+        .char-img img { width: 100%; height: 100%; object-fit: cover; }
+        .btn-primary { background: var(--primary-pink); color: white; border: none; padding: 18px 45px; border-radius: 50px; font-weight: 700; cursor: pointer; }
+        .hidden { display: none !important; }
+        .arena-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; margin-top: 50px; width: 100%; }
+        .hp-bar { width: 100%; height: 15px; background: #1e293b; border-radius: 10px; overflow: hidden; margin-top: 10px; }
+        .hp-fill { height: 100%; background: #10b981; transition: width 0.5s ease; width: 100%; }
+        .skill-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--primary-pink); color: white; padding: 10px 20px; cursor: pointer; border-radius: 8px; margin: 5px; transition: 0.2s; }
+        .skill-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: gray; }
+
+        /* Animação de Tremer */
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.shake {
+    animation: shake 0.5s;
+}
+
+/* Efeito de Dano Vermelho */
+.damage-flash {
+    filter: brightness(1.5) sepia(1) hue-rotate(-50deg) saturate(5);
+    transition: filter 0.2s;
+}
+
+/* Container para posicionar o dano */
+#player-1, #player-2 { position: relative; }
+
+/* Estilo do número flutuante */
+.floating-damage {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ff4d4d;
+    font-size: 2.5rem;
+    font-weight: 900;
+    text-shadow: 2px 2px 0px #000;
+    pointer-events: none;
+    z-index: 100;
+    animation: floatUp 0.8s ease-out forwards;
+}
+
+@keyframes floatUp {
+    0% { opacity: 0; transform: translate(-50%, 0); }
+    20% { opacity: 1; transform: translate(-50%, -20px); }
+    100% { opacity: 0; transform: translate(-50%, -60px); }
+}
+    </style>
+</head>
+<body>
+    <video autoplay muted loop id="bg-video">
+        <source src="videos/body2.mp4" type="video/mp4">
+    </video>
+    <div class="overlay"></div>
+
+    <header>
+        <div class="logo">Ani<span>stats</span></div>
+        <div id="status-rede" style="font-size: 0.8rem; color: var(--text-dim);">Conectado</div>
+    </header>
+
+    <main id="home-screen">
+        <img src="img/f1.gif">
+        <span class="subtitle">Arena Online</span>
+        <h1>COMBATE EM<br><span>TURNO.</span></h1>
+        <button class="btn-primary" onclick="irParaSelecao()">JOGAR</button>
+    </main>
+
+    <main id="select-screen" class="hidden">
+        <span class="subtitle">Escolha seu Campeão</span>
+        <div class="preview-flex" id="char-list"></div>
+    </main>
+
+    <main id="battle-screen" class="hidden">
+        <div class="arena-grid">
+            <div id="player-1">
+                <div class="char-card" style="width: 100%; cursor: default;">
+                    <div class="char-img"><img id="p1-img" src=""></div>
+                    <div class="char-info"><p>VOCÊ</p><p id="p1-name">---</p></div>
+                </div>
+                <div class="hp-bar"><div id="p1-hp" class="hp-fill"></div></div>
+                <div id="actions" style="margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center;"></div>
+            </div>
+            <div id="player-2">
+                <div class="char-card" style="width: 100%; cursor: default;">
+                    <div class="char-img"><img id="p2-img" src=""></div>
+                    <div class="char-info"><p>OPONENTE</p><p id="p2-name">---</p></div>
+                </div>
+                <div class="hp-bar"><div id="p2-hp" class="hp-fill"></div></div>
+            </div>
+        </div>
+        <div id="battle-log" style="margin-top: 30px; color: var(--text-dim);">Aguardando...</div>
+    </main>
+
+    <script>
+        const personagensManuais = [
+            { id: 1, nome: "Goku", img: "img/goku.png", hp: 100, ataques: [{n: "Kamehameha", d: 25}, {n: "Soco", d: 10}] },
+            { id: 2, nome: "Saitama", img: "img/saitama.png", hp: 150, ataques: [{n: "Soco Sério", d: 50}, {n: "Soco Normal", d: 20}] }
+        ];
+
+        const socket = io();
+        let minhaSala = null;
+        let meuPersonagem = null;
+        let meuTurno = false;
+
+        function irParaSelecao() {
+            document.getElementById('home-screen').classList.add('hidden');
+            document.getElementById('select-screen').classList.remove('hidden');
+            renderChars();
+        }
+
+        function renderChars() {
+            const list = document.getElementById('char-list');
+            list.innerHTML = personagensManuais.map(c => `
+                <div class="char-card" onclick="confirmarEscolha(${c.id})">
+                    <div class="char-img"><img src="${c.img}"></div>
+                    <div class="char-info"><p>Level 100</p><p>${c.nome}</p></div>
+                </div>
+            `).join('');
+        }
+
+        function confirmarEscolha(id) {
+            meuPersonagem = personagensManuais.find(c => c.id === id);
+            document.getElementById('select-screen').innerHTML = "<h2>Procurando oponente...</h2>";
+            socket.emit('procurarPartida', meuPersonagem);
+        }
+
+        socket.on('startBattle', (dados) => {
+            minhaSala = dados.salaId;
+            meuTurno = dados.seuTurno;
+            document.getElementById('select-screen').classList.add('hidden');
+            document.getElementById('battle-screen').classList.remove('hidden');
+            document.getElementById('p1-name').innerText = meuPersonagem.nome;
+            document.getElementById('p1-img').src = meuPersonagem.img;
+            document.getElementById('p2-name').innerText = dados.oponente.nome;
+            document.getElementById('p2-img').src = dados.oponente.img;
+            renderAcoes();
+            document.getElementById('battle-log').innerText = meuTurno ? "Seu turno!" : "Aguardando oponente...";
+        });
+
+        function renderAcoes() {
+            const container = document.getElementById('actions');
+            container.innerHTML = meuPersonagem.ataques.map(a => `
+                <button class="skill-btn" onclick="usarAtaque(${a.d}, '${a.n}')" ${!meuTurno ? 'disabled' : ''}>
+                    ${a.n} (${a.d} DMG)
+                </button>
+            `).join('');
+        }
+
+        function usarAtaque(dano, nome) {
+            if (!meuTurno) return;
+            socket.emit('atacar', { salaId: minhaSala, dano, nomeAtaque: nome });
+            meuTurno = false;
+            renderAcoes();
+        }
+
+socket.on('atualizarBatalha', (res) => {
+    const isEuAtacando = res.atacante === socket.id;
+    const alvoIdStr = isEuAtacando ? 'player-2' : 'player-1';
+    const hpId = isEuAtacando ? 'p2-hp' : 'p1-hp';
+    
+    const alvoElement = document.getElementById(alvoIdStr);
+    const alvoImg = alvoElement.querySelector('.char-img img');
+
+    // --- NOVO: Criar número flutuante de dano ---
+    const danoTexto = document.createElement('div');
+    danoTexto.classList.add('floating-damage');
+    danoTexto.innerText = `-${res.dano}`;
+    alvoElement.appendChild(danoTexto);
+
+    // Remover o número após a animação
+    setTimeout(() => { danoTexto.remove(); }, 800);
+    // --------------------------------------------
+
+    // Efeitos visuais de impacto
+    alvoElement.classList.add('shake');
+    if (alvoImg) alvoImg.classList.add('damage-flash');
+
+    setTimeout(() => {
+        alvoElement.classList.remove('shake');
+        if (alvoImg) alvoImg.classList.remove('damage-flash');
+    }, 500);
+
+    // Atualização de HP e Log
+    document.getElementById(hpId).style.width = res.novoHpAlvo + "%";
+    document.getElementById('battle-log').innerText = `${isEuAtacando ? 'Você' : 'Oponente'} usou ${res.nomeAtaque}!`;
+    
+    meuTurno = res.proximoTurno === socket.id;
+    renderAcoes();
+});
+
+        socket.on('fimBatalha', (res) => {
+            alert(res.vencedor === socket.id ? "VOCÊ VENCEU!" : "VOCÊ PERDEU!");
+            location.reload();
+        });
+    </script>
+</body>
+</html>
