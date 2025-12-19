@@ -61,19 +61,26 @@ io.on('connection', (socket) => {
             const s1 = io.sockets.sockets.get(p1.id);
             const s2 = io.sockets.sockets.get(p2.id);
 
-            if (s1 && s2) {
+if (s1 && s2) {
                 s1.join(salaId);
                 s2.join(salaId);
 
                 salas[salaId] = {
-                    p1: { id: p1.id, hpMax: p1.char.hp, hp: p1.char.hp, nome: p1.char.nome, turnosRealizados: 0, cooldowns: {} },
-                    p2: { id: p2.id, hpMax: p2.char.hp, hp: p2.char.hp, nome: p2.char.nome, turnosRealizados: 0, cooldowns: {} },
+                    p1: { id: p1.id, hpMax: p1.char.hp, hp: p1.char.hp, nome: p1.char.nome, charCompleto: p1.char, turnosRealizados: 0, cooldowns: {} },
+                    p2: { id: p2.id, hpMax: p2.char.hp, hp: p2.char.hp, nome: p2.char.nome, charCompleto: p2.char, turnosRealizados: 0, cooldowns: {} },
                     turno: p1.id,
                     timer: null
                 };
 
-                io.to(salaId).emit('startBattle', { oponente: p2.char, p1Id: p1.id, salaId });
-                gerenciarTimer(salaId); // Inicia o primeiro timer
+                // Enviamos os dados dos dois personagens para ambos
+                io.to(salaId).emit('startBattle', { 
+                    player1: p1.char, 
+                    player2: p2.char, 
+                    p1Id: p1.id, 
+                    p2Id: p2.id, 
+                    salaId 
+                });
+                gerenciarTimer(salaId);
             }
         }
     });

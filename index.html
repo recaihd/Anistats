@@ -159,7 +159,7 @@
         <a href="https://github.com/recaihd" target="_blank" class="social-icon">
             <img src="icones/github.png" alt="Github">
         </a>
-        <a href="mailto:ricardosousapixtudo.com" class="social-icon">
+        <a onclick="window.location.href='mailto:ricardosousapixtudo@gmail.com?subject=Proposta%20de%20Trabalho' " class="social-icon">
             <img src="icones/mail.png" alt="Contato">
         </a>
         <a href="https://livepix.gg/recai" class="social-icon">
@@ -257,17 +257,26 @@
         }, 1000);
     }
 
-    socket.on('startBattle', (dados) => {
+socket.on('startBattle', (dados) => {
         minhaSala = dados.salaId;
         meuTurno = (dados.p1Id === socket.id);
         
         document.getElementById('select-screen').classList.add('hidden');
         document.getElementById('battle-screen').classList.remove('hidden');
-        
-        document.getElementById('p1-name').innerText = meuPersonagem.nome;
-        document.getElementById('p1-img').src = meuPersonagem.img;
-        document.getElementById('p2-name').innerText = dados.oponente.nome;
-        document.getElementById('p2-img').src = dados.oponente.img;
+
+        // Lógica de Identificação correta:
+        const souOPlayer1 = (socket.id === dados.p1Id);
+        const eu = souOPlayer1 ? dados.player1 : dados.player2;
+        const oponente = souOPlayer1 ? dados.player2 : dados.player1;
+
+        // Atualiza meu personagem (Lado Esquerdo)
+        document.getElementById('p1-name').innerText = eu.nome;
+        document.getElementById('p1-img').src = eu.img;
+        meuPersonagem = eu; // Garante que ataques e ult sejam do char escolhido
+
+        // Atualiza oponente (Lado Direito)
+        document.getElementById('p2-name').innerText = oponente.nome;
+        document.getElementById('p2-img').src = oponente.img;
         
         renderAcoes();
         iniciarCronometro();
