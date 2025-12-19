@@ -50,6 +50,14 @@
         h1 { font-size: 4rem; line-height: 0.9; font-weight: 900; margin-bottom: 30px; }
         h1 span { color: var(--primary-pink); }
 
+        #timer-display {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--primary-pink);
+    text-shadow: 0 0 10px rgba(219, 39, 119, 0.5);
+    margin: 10px 0;
+}
+
         .preview-flex { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
@@ -125,6 +133,7 @@
     </main>
 
     <main id="battle-screen" class="hidden">
+        <div id="timer-display" class="hidden">20s</div>
         <div class="arena-grid">
             <div id="player-1">
                 <div class="char-card" style="width: 100%; cursor: default;">
@@ -161,6 +170,8 @@
     const socket = io(window.location.origin);
     let minhaSala = null, meuPersonagem = null, meuTurno = false;
     let meusStatus = { turnos: 0, cds: {} };
+    let tempoRestante = 20;
+    let cronometroFront = null;
 
     function irParaSelecao() {
         document.getElementById('home-screen').classList.add('hidden');
@@ -184,16 +195,41 @@
         socket.emit('procurarPartida', meuPersonagem);
     }
 
+    function iniciarCronometro() {
+        if (cronometroFront) clearInterval(cronometroFront);
+        
+        tempoRestante = 20;
+        const display = document.getElementById('timer-display');
+        if (display) {
+            display.classList.remove('hidden');
+            display.innerText = tempoRestante + "s";
+            display.style.color = "var(--primary-pink)";
+        }
+
+        cronometroFront = setInterval(() => {
+            tempoRestante--;
+            if (display) {
+                display.innerText = tempoRestante + "s";
+                if (tempoRestante <= 5) display.style.color = "#ff4d4d";
+            }
+            if (tempoRestante <= 0) clearInterval(cronometroFront);
+        }, 1000);
+    }
+
     socket.on('startBattle', (dados) => {
         minhaSala = dados.salaId;
-        meuTurno = dados.seuTurno;
+        meuTurno = (dados.p1Id === socket.id);
+        
         document.getElementById('select-screen').classList.add('hidden');
         document.getElementById('battle-screen').classList.remove('hidden');
+        
         document.getElementById('p1-name').innerText = meuPersonagem.nome;
         document.getElementById('p1-img').src = meuPersonagem.img;
         document.getElementById('p2-name').innerText = dados.oponente.nome;
         document.getElementById('p2-img').src = dados.oponente.img;
+        
         renderAcoes();
+        iniciarCronometro();
         document.getElementById('battle-log').innerText = meuTurno ? "Seu turno!" : "Aguardando oponente...";
     });
 
@@ -224,7 +260,7 @@
         if (!meuTurno) return;
         socket.emit('atacar', { salaId: minhaSala, danoBase: dano, nomeAtaque: nome, isUlt });
         meuTurno = false;
-        renderAcoes(); // Atualiza para desativar botões imediatamente
+        renderAcoes();
     }
 
     socket.on('atualizarBatalha', (res) => {
@@ -234,37 +270,40 @@
         const alvoElement = document.getElementById(alvoIdStr);
         const alvoImg = alvoElement.querySelector('.char-img img');
 
-        // Número de Dano
-        const danoTexto = document.createElement('div');
-        danoTexto.classList.add('floating-damage');
-        danoTexto.innerText = `-${res.dano}`;
-        alvoElement.appendChild(danoTexto);
-        setTimeout(() => danoTexto.remove(), 800);
+        // Feedback visual de dano
+        if (res.dano > 0) {
+            const danoTexto = document.createElement('div');
+            danoTexto.classList.add('floating-damage');
+            danoTexto.innerText = `-${res.dano}`;
+            alvoElement.appendChild(danoTexto);
+            setTimeout(() => danoTexto.remove(), 800);
 
-        // Shake e Flash
-        alvoElement.classList.add('shake');
-        alvoImg.classList.add('damage-flash');
-        setTimeout(() => {
-            alvoElement.classList.remove('shake');
-            alvoImg.classList.remove('damage-flash');
-        }, 400);
-
-        // Atualizar UI de Vida
-        document.getElementById(hpId).style.width = res.novoHpAlvo + "%";
-        document.getElementById('battle-log').innerText = `${isEuAtacando ? 'Você' : 'Oponente'} usou ${res.nomeAtaque}!`;
-        
-        // --- CORREÇÃO AQUI: Identificar meus status corretamente ---
-        if (res.statsP1.id === socket.id) {
-            meusStatus = res.statsP1;
-        } else {
-            meusStatus = res.statsP2;
+            alvoElement.classList.add('shake');
+            alvoImg.classList.add('damage-flash');
+            setTimeout(() => {
+                alvoElement.classList.remove('shake');
+                alvoImg.classList.remove('damage-flash');
+            }, 400);
         }
 
+        // Atualizar HP e Log
+        document.getElementById(hpId).style.width = res.novoHpAlvo + "%";
+        document.getElementById('battle-log').innerText = res.dano === 0 ? 
+            "Tempo esgotado! Turno passado." : 
+            `${isEuAtacando ? 'Você' : 'Oponente'} usou ${res.nomeAtaque}!`;
+        
+        // Sincronizar status e turno
+        if (res.statsP1.id === socket.id) meusStatus = res.statsP1;
+        else meusStatus = res.statsP2;
+
         meuTurno = res.proximoTurno === socket.id;
+        
         renderAcoes();
+        iniciarCronometro();
     });
 
     socket.on('fimBatalha', (res) => {
+        clearInterval(cronometroFront);
         alert(res.vencedor === socket.id ? "VITÓRIA!" : "DERROTA!");
         location.reload();
     });
