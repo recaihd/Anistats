@@ -137,4 +137,4 @@ if (s1 && s2) {
     });
 });
 
-http.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
+http.listen(PORT, () => console.log(`Rodando na porta http://localhost:3000/ ${PORT}`));
