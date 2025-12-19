@@ -161,7 +161,8 @@
             { id: 2, nome: "Saitama", img: "img/saitama.png", hp: 150, ataques: [{n: "Soco Sério", d: 50}, {n: "Soco Normal", d: 20}] }
         ];
 
-        const socket = io("https://anistats.onrender.com");
+        // Isso faz o jogo conectar automaticamente ao domínio que estiver na barra de endereços
+const socket = io(window.location.origin);
         let minhaSala = null;
         let meuPersonagem = null;
         let meuTurno = false;
