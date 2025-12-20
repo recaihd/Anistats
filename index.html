@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anistats | Battle Turn</title>
-        <meta name="author" content="RecaiHD">
-    <meta name="keywords" content="battle, batalha de turnos, anime, otaku, game, jogo, online, multiplayer">
-    <meta name="description" content="Batalhe contra outros personagens de anime em tempo real">
-    <meta name="theme-color" content="#A020F0">
+    <meta name="author" content="RecaiHD">
     <link rel="icon" href="img/icon_site.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-       
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+       * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
             --card-bg: rgba(22, 27, 34, 0.7);
             --primary-pink: #db2777;
@@ -214,6 +210,288 @@
     z-index: 10;
 }
 
+/* --- NOVOS ESTILOS: LOGIN, RANKING E PERFIL --- */
+
+/* Modal de Login e Ranking */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--border-color);
+    padding: 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(219, 39, 119, 0.2);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: var(--primary-pink);
+}
+
+/* Inputs de Texto */
+.input-field {
+    width: 100%;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: white;
+    font-family: inherit;
+    outline: none;
+    transition: 0.3s;
+}
+
+.input-field:focus {
+    border-color: var(--primary-pink);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Info do Usuário no Header */
+.user-info-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px 15px;
+    border-radius: 50px;
+    border: 1px solid var(--border-color);
+}
+
+.user-avatar-mini {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-pink);
+    object-fit: cover;
+    cursor: pointer;
+}
+
+.user-stats {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.user-stats span {
+    color: var(--primary-pink);
+}
+
+/* Estilo do Ranking */
+.ranking-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 15px;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-color);
+    gap: 15px;
+}
+
+.ranking-item:last-child { border: none; }
+
+.rank-number {
+    font-weight: 900;
+    color: var(--text-dim);
+    width: 25px;
+}
+
+.ranking-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.ranking-name {
+    flex: 1;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ranking-pts {
+    color: var(--primary-pink);
+    font-weight: 800;
+}
+
+/* Botões Adicionais */
+.btn-secondary {
+    background: transparent;
+    color: white;
+    border: 1px solid var(--primary-pink);
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+    margin-top: 10px;
+}
+
+.btn-secondary:hover {
+    background: var(--primary-pink);
+}
+
+/* Botão Flutuante de Ranking */
+.btn-ranking-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary-pink);
+    border: none;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-ranking-toggle img {
+    width: 30px;
+    filter: brightness(0) invert(1);
+}
+
+/* --- NOVOS ESTILOS PARA BATALHA E RESULTADOS --- */
+
+/* Estilo para as fotos dos jogadores na Arena */
+.player-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.p-avatar-frame {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    border: 2px solid var(--primary-pink);
+    overflow: hidden;
+}
+
+.p-avatar-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.p-info-text {
+    text-align: left;
+}
+
+.p-info-text .role {
+    font-size: 0.65rem;
+    color: var(--primary-pink);
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.p-info-text .user-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: white;
+}
+
+/* Telas de Resultado (Vitória/Derrota) */
+.result-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(15px);
+    background: rgba(0, 0, 0, 0.85);
+    animation: fadeIn 0.5s ease;
+}
+
+.result-card {
+    background: var(--card-bg);
+    border: 2px solid var(--primary-pink);
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(219, 39, 119, 0.4);
+    max-width: 400px;
+    width: 90%;
+}
+
+.result-title {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: -2px;
+}
+
+.win-text { color: #10b981; text-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+.lose-text { color: #ef4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+
+.result-points {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 30px;
+}
+
+.result-points span {
+    font-size: 2rem;
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Transição de Background */
+#bg-video {
+    transition: opacity 1s ease-in-out;
+}
+
+/* Ajuste na Arena para caber os perfis */
+.arena-grid {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Scrollbar Customizada para o Ranking */
+.ranking-list::-webkit-scrollbar { width: 5px; }
+.ranking-list::-webkit-scrollbar-track { background: transparent; }
+.ranking-list::-webkit-scrollbar-thumb { background: var(--primary-pink); border-radius: 10px; }
+
         .damage-flash { filter: brightness(2) contrast(2); transition: 0.2s; }
         .floating-damage { position: absolute; top: 20%; left: 50%; color: #ff4d4d; font-size: 3rem; font-weight: 900; text-shadow: 2px 2px 0px #000; animation: floatUp 0.8s forwards; z-index: 100; }
         @keyframes floatUp { 0% { opacity: 0; transform: translateY(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-50px); } }
@@ -223,22 +501,55 @@
     <video autoplay muted loop id="bg-video"><source src="videos/body.mp4" type="video/mp4"></video>
     <div class="overlay"></div>
 
+    <div id="result-screen" class="result-screen hidden">
+        <div class="result-card">
+            <div id="result-title" class="result-title">VITÓRIA</div>
+            <div class="result-points">Você <span id="result-change">+50</span> pontos!</div>
+            <button class="btn-primary" onclick="location.reload()">VOLTAR AO INÍCIO</button>
+        </div>
+    </div>
+
+    <div id="login-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Bem-vindo, Combatente</h2>
+            <input type="text" id="login-user" class="input-field" placeholder="Username">
+            <input type="password" id="login-pass" class="input-field" placeholder="Senha">
+            <button class="btn-primary" style="width: 100%;" onclick="fazerLogin()">ENTRAR NO JOGO</button>
+        </div>
+    </div>
+
+    <div id="ranking-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>TOP 10 RANKING</h2>
+            <div id="ranking-list" style="max-height: 300px; overflow-y: auto;"></div>
+            <button class="btn-primary" onclick="toggleRanking()" style="width: 100%; margin-top: 20px;">FECHAR</button>
+        </div>
+    </div>
+
     <header>
         <div class="logo">Ani<span>stats</span></div>
-        <div id="status-rede" style="font-size: 0.8rem; color: var(--text-dim);">Conectado</div>
+        <div id="user-header-info" class="user-info-bar hidden">
+            <div style="font-size: 0.8rem; font-weight: 700;">
+                <span id="header-username">---</span> | <span id="header-points">0</span> PTS
+            </div>
+            <img id="header-avatar" src="img/default_avatar.webp" class="user-avatar-mini" onclick="trocarFoto()">
+        </div>
     </header>
 
-<main id="home-screen">
- <img src="img/f1.gif" style="width: 150px; margin-bottom: 20px;">
-    <span class="subtitle">Arena Online</span>
-    <h1>COMBATE EM<br><span>TURNO.</span></h1>
-    
-    <div class="btn-wrapper">
-        <img src="img/dance-uwu.gif" class="hover-gif" alt="dance">
-        <button class="btn-primary" onclick="irParaSelecao()">JOGAR</button>
+    <button class="btn-ranking-toggle" onclick="toggleRanking()">
+        <img src="icones/ranking.png" alt="Ranking" style="width: 30px; filter: brightness(0) invert(1);">
+    </button>
+
+    <main id="home-screen">
+        <img src="img/f1.gif" style="width: 150px; margin-bottom: 20px;">
+        <span class="subtitle">Arena Online</span>
+        <h1>COMBATE EM<br><span>TURNO.</span></h1>
+        <div class="btn-wrapper">
+            <img src="img/dance-uwu.gif" class="hover-gif">
+            <button class="btn-primary" onclick="irParaSelecao()">JOGAR</button>
         </div>
 
-    <div class="social-links">
+        <div class="social-links">
         <a href="https://github.com/recaihd" target="_blank" class="social-icon" data-tooltip="Github">
             <img src="icones/github.png" alt="Github">
         </a>
@@ -249,36 +560,52 @@
             <img src="icones/pix.png" alt="Apoiar com PIX">
         </a>
     </div>
-</main>
+    </main>
 
-    <main id="select-screen" class="hidden" style="max-width: 900px;">
+    <main id="select-screen" class="hidden">
         <span class="subtitle">Escolha seu Campeão</span>
         <div class="preview-flex" id="char-list"></div>
     </main>
 
     <main id="battle-screen" class="hidden">
-        <div id="timer-display" class="hidden">20s</div>
+        <div id="timer-display">20s</div>
         <div class="arena-grid">
             <div id="player-1">
+                <div class="player-profile">
+                    <div class="p-avatar-frame"><img id="p1-user-avatar" src=""></div>
+                    <div class="p-info-text">
+                        <div class="role">Você</div>
+                        <div class="user-name" id="p1-user-name">---</div>
+                    </div>
+                </div>
                 <div class="char-card" style="width: 100%; cursor: default;">
                     <div class="char-img"><img id="p1-img" src=""></div>
-                    <div class="char-info"><p>VOCÊ</p><p id="p1-name">---</p></div>
+                    <div class="char-info"><p id="p1-name">---</p></div>
                 </div>
                 <div class="hp-bar"><div id="p1-hp" class="hp-fill"></div></div>
-                <div id="actions" style="margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: center;"></div>
+                <div id="actions" style="margin-top: 15px; display: flex; flex-wrap: wrap; justify-content: center;"></div>
             </div>
+
             <div id="player-2">
+                <div class="player-profile">
+                    <div class="p-avatar-frame"><img id="p2-user-avatar" src=""></div>
+                    <div class="p-info-text">
+                        <div class="role">Oponente</div>
+                        <div class="user-name" id="p2-user-name">---</div>
+                    </div>
+                </div>
                 <div class="char-card" style="width: 100%; cursor: default;">
                     <div class="char-img"><img id="p2-img" src=""></div>
-                    <div class="char-info"><p>OPONENTE</p><p id="p2-name">---</p></div>
+                    <div class="char-info"><p id="p2-name">---</p></div>
                 </div>
                 <div class="hp-bar"><div id="p2-hp" class="hp-fill"></div></div>
             </div>
         </div>
-        <div id="battle-log" style="margin-top: 30px; color: var(--text-dim); font-weight: bold; font-size: 1.2rem;">Aguardando...</div>
+        <div id="battle-log" style="margin-top: 20px; font-weight: bold;">Iniciando...</div>
     </main>
 
 <script>
+    const socket = io(window.location.origin);
     const personagensManuais = [
         { id: 1, nome: "Goku", img: "img/goku.png", hp: 150, ataques: [{n: "Kamehameha", d: 30}, {n: "Soco", d: 15}], ult: "Instinto Superior" },
         { id: 2, nome: "Saitama", img: "img/saitama.png", hp: 150, ataques: [{n: "Soco Sério", d: 38}, {n: "Soco Normal", d: 20}], ult: "Soco de Morte" },
@@ -291,19 +618,72 @@
         { id: 9, nome: "Miku", img: "img/miku.png", hp: 150, ataques: [{n: "Beijo do Amor", d: 32}, {n: "Soco Fofo", d: 15}], ult: "Sinfonia Digital" }
     ];
 
-    const socket = io(window.location.origin);
-    let minhaSala = null, meuPersonagem = null, meuTurno = false;
-    let meusStatus = { turnos: 0, cds: {} };
-    let tempoRestante = 20;
-    let cronometroFront = null;
+    let minhaSala = null, meuPersonagem = null, meuTurno = false, meuUsuario = null;
+    let meusStatus = { turnos: 0, cds: {} }, cronometroFront = null;
+    const IMG_PADRAO = "img/default_avatar.webp";
 
+    // COOKIES & LOGIN
+    function setCookie(n, v, d) {
+        const date = new Date(); date.setTime(date.getTime() + (d*24*60*60*1000));
+        document.cookie = n + "=" + encodeURIComponent(JSON.stringify(v)) + ";expires=" + date.toUTCString() + ";path=/";
+    }
+    function getCookie(n) {
+        const name = n + "="; const ca = document.cookie.split(';');
+        for(let i=0; i<ca.length; i++) {
+            let c = ca[i]; while (c.charAt(0)==' ') c = c.substring(1);
+            if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+        } return null;
+    }
+
+    window.onload = () => {
+        const salvo = getCookie("auth_anistats");
+        if (salvo) { meuUsuario = JSON.parse(decodeURIComponent(salvo)); socket.emit('loginExistente', meuUsuario); }
+        else { document.getElementById('login-modal').classList.remove('hidden'); }
+    };
+
+    function fazerLogin() {
+        const u = document.getElementById('login-user').value.trim();
+        const p = document.getElementById('login-pass').value.trim();
+        if(u.length < 3) return alert("Username curto!");
+        socket.emit('solicitarLogin', { username: u, senha: p });
+    }
+
+    socket.on('loginSucesso', d => { meuUsuario = d; setCookie("auth_anistats", d, 30); document.getElementById('login-modal').classList.add('hidden'); atualizarUIUsuario(); });
+    socket.on('erroLogin', m => alert(m));
+
+    function atualizarUIUsuario() {
+        document.getElementById('user-header-info').classList.remove('hidden');
+        document.getElementById('header-username').innerText = meuUsuario.username;
+        document.getElementById('header-points').innerText = meuUsuario.pontos;
+        document.getElementById('header-avatar').src = meuUsuario.avatar || IMG_PADRAO;
+    }
+
+    function trocarFoto() {
+        const url = prompt("URL da nova foto:", meuUsuario.avatar || "");
+        if(url) socket.emit('atualizarAvatar', { username: meuUsuario.username, avatar: url });
+    }
+    socket.on('avatarAtualizado', url => { meuUsuario.avatar = url; atualizarUIUsuario(); setCookie("auth_anistats", meuUsuario, 30); });
+
+    // RANKING
+    function toggleRanking() {
+        const m = document.getElementById('ranking-modal'); m.classList.toggle('hidden');
+        if(!m.classList.contains('hidden')) socket.emit('obterRanking');
+    }
+    socket.on('receberRanking', l => {
+        document.getElementById('ranking-list').innerHTML = l.map((u, i) => `
+            <div class="ranking-item">
+                <span style="font-weight:900; width:25px;">#${i+1}</span>
+                <img src="${u.avatar || IMG_PADRAO}" class="ranking-avatar">
+                <span style="flex:1">${u.username}</span>
+                <span style="color:var(--primary-pink); font-weight:800;">${u.pontos} pts</span>
+            </div>
+        `).join('');
+    });
+
+    // JOGO
     function irParaSelecao() {
         document.getElementById('home-screen').classList.add('hidden');
         document.getElementById('select-screen').classList.remove('hidden');
-        renderChars();
-    }
-
-    function renderChars() {
         const list = document.getElementById('char-list');
         list.innerHTML = personagensManuais.map(c => `
             <div class="char-card" onclick="confirmarEscolha(${c.id})">
@@ -315,130 +695,98 @@
 
     function confirmarEscolha(id) {
         meuPersonagem = personagensManuais.find(c => c.id === id);
-        document.getElementById('select-screen').innerHTML = "<h2 style='margin-top:50px'>Procurando oponente...</h2>";
-        socket.emit('procurarPartida', meuPersonagem);
+        document.getElementById('select-screen').innerHTML = "<h2>Procurando oponente...</h2>";
+        socket.emit('procurarPartida', { ...meuPersonagem, username: meuUsuario.username, avatar: meuUsuario.avatar });
     }
 
-    function iniciarCronometro() {
-        if (cronometroFront) clearInterval(cronometroFront);
+    socket.on('startBattle', d => {
+        minhaSala = d.salaId;
+        meuTurno = (d.p1Id === socket.id);
         
-        tempoRestante = 20;
-        const display = document.getElementById('timer-display');
-        if (display) {
-            display.classList.remove('hidden');
-            display.innerText = tempoRestante + "s";
-            display.style.color = "var(--primary-pink)";
-        }
-
-        cronometroFront = setInterval(() => {
-            tempoRestante--;
-            if (display) {
-                display.innerText = tempoRestante + "s";
-                if (tempoRestante <= 5) display.style.color = "#ff4d4d";
-            }
-            if (tempoRestante <= 0) clearInterval(cronometroFront);
-        }, 1000);
-    }
-
-socket.on('startBattle', (dados) => {
-        minhaSala = dados.salaId;
-        meuTurno = (dados.p1Id === socket.id);
+        // TROCAR VÍDEO DE FUNDO
+        const video = document.getElementById('bg-video');
+        video.src = "videos/body_battle.mp4";
         
         document.getElementById('select-screen').classList.add('hidden');
         document.getElementById('battle-screen').classList.remove('hidden');
 
-        // Lógica de Identificação correta:
-        const souOPlayer1 = (socket.id === dados.p1Id);
-        const eu = souOPlayer1 ? dados.player1 : dados.player2;
-        const oponente = souOPlayer1 ? dados.player2 : dados.player1;
+        const souP1 = socket.id === d.p1Id;
+        const eu = souP1 ? d.player1 : d.player2;
+        const oponente = souP1 ? d.player2 : d.player1;
 
-        // Atualiza meu personagem (Lado Esquerdo)
+        // Info do Personagem
         document.getElementById('p1-name').innerText = eu.nome;
         document.getElementById('p1-img').src = eu.img;
-        meuPersonagem = eu; // Garante que ataques e ult sejam do char escolhido
-
-        // Atualiza oponente (Lado Direito)
         document.getElementById('p2-name').innerText = oponente.nome;
         document.getElementById('p2-img').src = oponente.img;
-        
+
+        // Info do Perfil do Usuário
+        document.getElementById('p1-user-name').innerText = meuUsuario.username;
+        document.getElementById('p1-user-avatar').src = meuUsuario.avatar || IMG_PADRAO;
+        document.getElementById('p2-user-name').innerText = oponente.username;
+        document.getElementById('p2-user-avatar').src = oponente.avatar || IMG_PADRAO;
+
         renderAcoes();
         iniciarCronometro();
-        document.getElementById('battle-log').innerText = meuTurno ? "Seu turno!" : "Aguardando oponente...";
     });
+
+    function iniciarCronometro() {
+        if(cronometroFront) clearInterval(cronometroFront);
+        let t = 20;
+        const disp = document.getElementById('timer-display');
+        cronometroFront = setInterval(() => {
+            t--; disp.innerText = t + "s";
+            if(t <= 0) clearInterval(cronometroFront);
+        }, 1000);
+    }
 
     function renderAcoes() {
         const container = document.getElementById('actions');
-        let botoes = meuPersonagem.ataques.map(a => {
-            const emCD = meusStatus.cds[a.n] > 0;
-            return `
-                <button class="skill-btn" onclick="usarAtaque(${a.d}, '${a.n}', false)" 
-                    ${(!meuTurno || emCD) ? 'disabled' : ''}>
-                    ${a.n} ${emCD ? `(${meusStatus.cds[a.n]}T)` : `(${a.d} DMG)`}
-                </button>
-            `;
+        let html = meuPersonagem.ataques.map(a => {
+            const cd = meusStatus.cds[a.n] > 0;
+            return `<button class="skill-btn" onclick="usarAtaque(${a.d},'${a.n}',false)" ${(!meuTurno || cd)?'disabled':''}>
+                ${a.n} ${cd ? `(${meusStatus.cds[a.n]}T)` : ''}
+            </button>`;
         }).join('');
-
         const podeUlt = meusStatus.turnos >= 6;
-        botoes += `
-            <button class="skill-btn ult-btn ${podeUlt ? 'ult-ready' : ''}" 
-                onclick="usarAtaque(75, '${meuPersonagem.ult}', true)" 
-                ${(!meuTurno || !podeUlt) ? 'disabled' : ''}>
-                ULT: ${meuPersonagem.ult} ${!podeUlt ? `(${6 - meusStatus.turnos}T)` : ''}
-            </button>
-        `;
-        container.innerHTML = botoes;
+        html += `<button class="skill-btn ult-btn ${podeUlt?'ult-ready':''}" onclick="usarAtaque(75,'${meuPersonagem.ult}',true)" ${(!meuTurno || !podeUlt)?'disabled':''}>ULT: ${meuPersonagem.ult}</button>`;
+        container.innerHTML = html;
     }
 
-    function usarAtaque(dano, nome, isUlt) {
-        if (!meuTurno) return;
-        socket.emit('atacar', { salaId: minhaSala, danoBase: dano, nomeAtaque: nome, isUlt });
-        meuTurno = false;
-        renderAcoes();
-    }
+    function usarAtaque(d, n, u) { socket.emit('atacar', { salaId: minhaSala, danoBase: d, nomeAtaque: n, isUlt: u }); meuTurno = false; renderAcoes(); }
 
-    socket.on('atualizarBatalha', (res) => {
-        const isEuAtacando = res.atacante === socket.id;
-        const alvoIdStr = isEuAtacando ? 'player-2' : 'player-1';
+    socket.on('atualizarBatalha', r => {
+        const isEuAtacando = r.atacante === socket.id;
+        const alvoDivId = isEuAtacando ? 'player-2' : 'player-1';
         const hpId = isEuAtacando ? 'p2-hp' : 'p1-hp';
-        const alvoElement = document.getElementById(alvoIdStr);
-        const alvoImg = alvoElement.querySelector('.char-img img');
-
-        // Feedback visual de dano
-        if (res.dano > 0) {
-            const danoTexto = document.createElement('div');
-            danoTexto.classList.add('floating-damage');
-            danoTexto.innerText = `-${res.dano}`;
-            alvoElement.appendChild(danoTexto);
-            setTimeout(() => danoTexto.remove(), 800);
-
-            alvoElement.classList.add('shake');
-            alvoImg.classList.add('damage-flash');
-            setTimeout(() => {
-                alvoElement.classList.remove('shake');
-                alvoImg.classList.remove('damage-flash');
-            }, 400);
+        
+        if(r.dano > 0) {
+            const d = document.createElement('div'); d.className = 'floating-damage'; d.innerText = `-${r.dano}`;
+            document.getElementById(alvoDivId).appendChild(d); setTimeout(() => d.remove(), 800);
+            document.getElementById(alvoDivId).classList.add('shake'); setTimeout(() => document.getElementById(alvoDivId).classList.remove('shake'), 400);
         }
-
-        // Atualizar HP e Log
-        document.getElementById(hpId).style.width = res.novoHpAlvo + "%";
-        document.getElementById('battle-log').innerText = res.dano === 0 ? 
-            "Tempo esgotado! Turno passado." : 
-            `${isEuAtacando ? 'Você' : 'Oponente'} usou ${res.nomeAtaque}!`;
-        
-        // Sincronizar status e turno
-        if (res.statsP1.id === socket.id) meusStatus = res.statsP1;
-        else meusStatus = res.statsP2;
-
-        meuTurno = res.proximoTurno === socket.id;
-        
-        renderAcoes();
-        iniciarCronometro();
+        document.getElementById(hpId).style.width = r.novoHpAlvo + "%";
+        document.getElementById('battle-log').innerText = `${isEuAtacando ? 'Você' : 'Oponente'} usou ${r.nomeAtaque}!`;
+        meusStatus = (r.statsP1.id === socket.id) ? r.statsP1 : r.statsP2;
+        meuTurno = r.proximoTurno === socket.id;
+        renderAcoes(); iniciarCronometro();
     });
 
-    socket.on('fimBatalha', (res) => {
+    socket.on('fimBatalha', r => {
         clearInterval(cronometroFront);
-        alert(res.vencedor === socket.id ? "VITÓRIA!" : "DERROTA!");
-        location.reload();
+        const venci = r.vencedor === socket.id;
+        const screen = document.getElementById('result-screen');
+        const title = document.getElementById('result-title');
+        const change = document.getElementById('result-change');
+
+        screen.classList.remove('hidden');
+        if(venci) {
+            title.innerText = "VITÓRIA"; title.className = "result-title win-text";
+            change.innerText = "GANHOU +50"; change.style.color = "#10b981";
+        } else {
+            title.innerText = "DERROTA"; title.className = "result-title lose-text";
+            change.innerText = "PERDEU -25"; change.style.color = "#ef4444";
+        }
     });
 </script>
 </body>
