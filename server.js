@@ -1,4 +1,4 @@
-require('dotenv').config(); // Carrega o .env logo no topo
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const app = express();
@@ -24,7 +24,7 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// --- VARIÁVEIS DE JOGO (MEMÓRIA VOLÁTIL) ---
+// --- VARIÁVEIS DE JOGO ---
 let fila = [];
 let salas = {}; 
 const TEMPO_TURNO = 20;
@@ -34,14 +34,11 @@ const AVATAR_PADRAO = 'img/default_avatar.webp';
 
 async function obterRanking() {
     try {
-        // Busca os 10 melhores direto do banco
         return await User.find()
             .sort({ pontos: -1 })
             .limit(10)
             .select('username pontos avatar');
-    } catch (e) {
-        return [];
-    }
+    } catch (e) { return []; }
 }
 
 function gerenciarTimer(salaId) {
@@ -57,6 +54,12 @@ function passarTurnoPorInatividade(salaId) {
 
     const atacanteId = sala.turno;
     const alvo = atacanteId === sala.p1.id ? sala.p2 : sala.p1;
+    
+    // Incrementa turno e reseta cooldowns por inatividade também
+    const atacante = atacanteId === sala.p1.id ? sala.p1 : sala.p2;
+    atacante.turnosRealizados++;
+    for (let chave in atacante.cooldowns) { if (atacante.cooldowns[chave] > 0) atacante.cooldowns[chave]--; }
+
     sala.turno = alvo.id;
 
     io.to(salaId).emit('atualizarBatalha', {
@@ -75,22 +78,24 @@ function passarTurnoPorInatividade(salaId) {
 
 io.on('connection', (socket) => {
     
-    // LOGIN E CADASTRO (Lógica do Banco)
     socket.on('solicitarLogin', async ({ username, senha }) => {
         try {
             let usuario = await User.findOne({ username });
 
             if (usuario) {
                 if (usuario.senha === senha) {
-                    socket.emit('loginSucesso', usuario);
+                    const uObj = usuario.toObject();
+                    delete uObj.senha; // Não envia a senha para o front
+                    socket.emit('loginSucesso', uObj);
                 } else {
                     socket.emit('erroLogin', "Senha incorreta!");
                 }
             } else {
-                // Se não existe, cria um novo
                 usuario = new User({ username, senha, pontos: 0, avatar: AVATAR_PADRAO });
                 await usuario.save();
-                socket.emit('loginSucesso', usuario);
+                const uObj = usuario.toObject();
+                delete uObj.senha;
+                socket.emit('loginSucesso', uObj);
             }
         } catch (err) {
             socket.emit('erroLogin', "Erro ao processar login.");
@@ -99,12 +104,11 @@ io.on('connection', (socket) => {
 
     socket.on('loginExistente', async (dados) => {
         try {
-            const usuario = await User.findOne({ username: dados.username, senha: dados.senha });
+            const usuario = await User.findOne({ username: dados.username }).select('-senha');
             if (usuario) socket.emit('loginSucesso', usuario);
         } catch (e) {}
     });
 
-    // ATUALIZAR FOTO NO BANCO
     socket.on('atualizarAvatar', async ({ username, avatar }) => {
         try {
             await User.findOneAndUpdate({ username }, { avatar });
@@ -112,14 +116,15 @@ io.on('connection', (socket) => {
         } catch (e) {}
     });
 
-    // RANKING BUSCADO DO BANCO
     socket.on('obterRanking', async () => {
         const lista = await obterRanking();
         socket.emit('receberRanking', lista);
     });
 
-    // BUSCA DE PARTIDA
     socket.on('procurarPartida', (dadosChar) => {
+        // Remove duplicatas na fila
+        fila = fila.filter(p => p.username !== dadosChar.username);
+        
         fila.push({ 
             id: socket.id, 
             char: dadosChar, 
@@ -130,7 +135,7 @@ io.on('connection', (socket) => {
         if (fila.length >= 2) {
             const p1 = fila.shift();
             const p2 = fila.shift();
-            const salaId = `sala_${p1.id}`;
+            const salaId = `sala_${p1.id}_${Date.now()}`;
 
             const s1 = io.sockets.sockets.get(p1.id);
             const s2 = io.sockets.sockets.get(p2.id);
@@ -156,7 +161,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // COMBATE
     socket.on('atacar', async ({ salaId, danoBase, nomeAtaque, isUlt }) => {
         const sala = salas[salaId];
         if (!sala || sala.turno !== socket.id) return;
@@ -167,6 +171,7 @@ io.on('connection', (socket) => {
         if (atacante.cooldowns[nomeAtaque] > 0) return;
 
         let danoFinal = isUlt ? (Math.random() < 0.5 ? 60 : 75) : (danoBase - Math.floor(Math.random() * (Math.floor(danoBase * 0.15) + 1)));
+        
         if (isUlt) atacante.turnosRealizados = 0;
         else if (danoBase > 25) atacante.cooldowns[nomeAtaque] = 3;
 
@@ -187,16 +192,20 @@ io.on('connection', (socket) => {
 
         if (alvo.hp <= 0) {
             clearTimeout(sala.timer);
+            const winnerId = atacante.id;
             
-            // ATUALIZAÇÃO NO BANCO DE DADOS (Persistente)
             try {
+                // Ganha 50 pontos
                 await User.findOneAndUpdate({ username: atacante.username }, { $inc: { pontos: 50 } });
-                await User.findOneAndUpdate({ username: alvo.username }, { $inc: { pontos: -25 } });
-                // Garante que pontos não fiquem negativos
-                await User.updateOne({ username: alvo.username, pontos: { $lt: 0 } }, { pontos: 0 });
-            } catch (e) { console.error("Erro ao atualizar pontos:", e); }
+                // Perde 25 pontos, mas o mínimo é 0
+                const userAlvo = await User.findOne({ username: alvo.username });
+                if (userAlvo) {
+                    let novosPontos = Math.max(0, userAlvo.pontos - 25);
+                    await User.updateOne({ username: alvo.username }, { $set: { pontos: novosPontos } });
+                }
+            } catch (e) { console.error("Erro banco:", e); }
 
-            io.to(salaId).emit('fimBatalha', { vencedor: atacante.id });
+            io.to(salaId).emit('fimBatalha', { vencedor: winnerId });
             delete salas[salaId];
         } else {
             gerenciarTimer(salaId);
@@ -209,5 +218,5 @@ io.on('connection', (socket) => {
 });
 
 http.listen(PORT, () => {
-    console.log(`Servidor anistats.fun rodando na porta ${PORT}`);
+    console.log(`✅ Servidor Anistats rodando na porta ${PORT}`);
 });
