@@ -1,27 +1,47 @@
+require('dotenv').config(); // Carrega o .env logo no topo
 const express = require('express');
+const mongoose = require('mongoose');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
 
 const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
 
 app.use(express.static(__dirname));
 
-// Banco de dados em memória
-let usuarios = {}; 
+// --- CONEXÃO COM MONGODB ---
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("✅ Conectado ao MongoDB Atlas"))
+    .catch(err => console.error("❌ Erro ao conectar ao MongoDB:", err));
+
+// --- MODELO DE USUÁRIO ---
+const UserSchema = new mongoose.Schema({
+    username: { type: String, unique: true, required: true },
+    senha: { type: String, required: true },
+    pontos: { type: Number, default: 0 },
+    avatar: { type: String, default: 'img/default_avatar.webp' }
+});
+const User = mongoose.model('User', UserSchema);
+
+// --- VARIÁVEIS DE JOGO (MEMÓRIA VOLÁTIL) ---
 let fila = [];
 let salas = {}; 
-
 const TEMPO_TURNO = 20;
 const AVATAR_PADRAO = 'img/default_avatar.webp';
 
 // --- FUNÇÕES DE AUXÍLIO ---
 
-function obterRanking() {
-    return Object.values(usuarios)
-        .map(u => ({ username: u.username, pontos: u.pontos, avatar: u.avatar }))
-        .sort((a, b) => b.pontos - a.pontos)
-        .slice(0, 10);
+async function obterRanking() {
+    try {
+        // Busca os 10 melhores direto do banco
+        return await User.find()
+            .sort({ pontos: -1 })
+            .limit(10)
+            .select('username pontos avatar');
+    } catch (e) {
+        return [];
+    }
 }
 
 function gerenciarTimer(salaId) {
@@ -55,47 +75,51 @@ function passarTurnoPorInatividade(salaId) {
 
 io.on('connection', (socket) => {
     
-    // LOGIN E CADASTRO
-    socket.on('solicitarLogin', ({ username, senha }) => {
-        if (usuarios[username]) {
-            if (usuarios[username].senha === senha) {
-                socket.emit('loginSucesso', usuarios[username]);
+    // LOGIN E CADASTRO (Lógica do Banco)
+    socket.on('solicitarLogin', async ({ username, senha }) => {
+        try {
+            let usuario = await User.findOne({ username });
+
+            if (usuario) {
+                if (usuario.senha === senha) {
+                    socket.emit('loginSucesso', usuario);
+                } else {
+                    socket.emit('erroLogin', "Senha incorreta!");
+                }
             } else {
-                socket.emit('erroLogin', "Senha incorreta!");
+                // Se não existe, cria um novo
+                usuario = new User({ username, senha, pontos: 0, avatar: AVATAR_PADRAO });
+                await usuario.save();
+                socket.emit('loginSucesso', usuario);
             }
-        } else {
-            usuarios[username] = { 
-                username, 
-                senha, 
-                pontos: 0, 
-                avatar: AVATAR_PADRAO 
-            };
-            socket.emit('loginSucesso', usuarios[username]);
+        } catch (err) {
+            socket.emit('erroLogin', "Erro ao processar login.");
         }
     });
 
-    socket.on('loginExistente', (dados) => {
-        if (usuarios[dados.username] && usuarios[dados.username].senha === dados.senha) {
-            socket.emit('loginSucesso', usuarios[dados.username]);
-        }
+    socket.on('loginExistente', async (dados) => {
+        try {
+            const usuario = await User.findOne({ username: dados.username, senha: dados.senha });
+            if (usuario) socket.emit('loginSucesso', usuario);
+        } catch (e) {}
     });
 
-    // ATUALIZAR FOTO
-    socket.on('atualizarAvatar', ({ username, avatar }) => {
-        if (usuarios[username]) {
-            usuarios[username].avatar = avatar;
+    // ATUALIZAR FOTO NO BANCO
+    socket.on('atualizarAvatar', async ({ username, avatar }) => {
+        try {
+            await User.findOneAndUpdate({ username }, { avatar });
             socket.emit('avatarAtualizado', avatar);
-        }
+        } catch (e) {}
     });
 
-    // RANKING
-    socket.on('obterRanking', () => {
-        socket.emit('receberRanking', obterRanking());
+    // RANKING BUSCADO DO BANCO
+    socket.on('obterRanking', async () => {
+        const lista = await obterRanking();
+        socket.emit('receberRanking', lista);
     });
 
-    // SISTEMA DE BUSCA DE PARTIDA
+    // BUSCA DE PARTIDA
     socket.on('procurarPartida', (dadosChar) => {
-        // Agora incluímos o avatar e username do perfil no objeto da fila
         fila.push({ 
             id: socket.id, 
             char: dadosChar, 
@@ -116,37 +140,16 @@ io.on('connection', (socket) => {
                 s2.join(salaId);
 
                 salas[salaId] = {
-                    p1: { 
-                        id: p1.id, 
-                        username: p1.username, 
-                        avatar: p1.avatar,
-                        hpMax: p1.char.hp, 
-                        hp: p1.char.hp, 
-                        nome: p1.char.nome, 
-                        turnosRealizados: 0, 
-                        cooldowns: {} 
-                    },
-                    p2: { 
-                        id: p2.id, 
-                        username: p2.username, 
-                        avatar: p2.avatar,
-                        hpMax: p2.char.hp, 
-                        hp: p2.char.hp, 
-                        nome: p2.char.nome, 
-                        turnosRealizados: 0, 
-                        cooldowns: {} 
-                    },
+                    p1: { id: p1.id, username: p1.username, avatar: p1.avatar, hpMax: p1.char.hp, hp: p1.char.hp, nome: p1.char.nome, turnosRealizados: 0, cooldowns: {} },
+                    p2: { id: p2.id, username: p2.username, avatar: p2.avatar, hpMax: p2.char.hp, hp: p2.char.hp, nome: p2.char.nome, turnosRealizados: 0, cooldowns: {} },
                     turno: p1.id,
                     timer: null
                 };
 
-                // Enviamos os dados completos para o Front-end montar a arena
                 io.to(salaId).emit('startBattle', { 
                     player1: { ...p1.char, username: p1.username, avatar: p1.avatar }, 
                     player2: { ...p2.char, username: p2.username, avatar: p2.avatar }, 
-                    p1Id: p1.id, 
-                    p2Id: p2.id, 
-                    salaId 
+                    p1Id: p1.id, p2Id: p2.id, salaId 
                 });
                 gerenciarTimer(salaId);
             }
@@ -154,7 +157,7 @@ io.on('connection', (socket) => {
     });
 
     // COMBATE
-    socket.on('atacar', ({ salaId, danoBase, nomeAtaque, isUlt }) => {
+    socket.on('atacar', async ({ salaId, danoBase, nomeAtaque, isUlt }) => {
         const sala = salas[salaId];
         if (!sala || sala.turno !== socket.id) return;
 
@@ -163,31 +166,19 @@ io.on('connection', (socket) => {
 
         if (atacante.cooldowns[nomeAtaque] > 0) return;
 
-        let danoFinal;
-        if (isUlt) {
-            danoFinal = Math.random() < 0.5 ? 60 : 75;
-            atacante.turnosRealizados = 0;
-        } else {
-            const variacao = Math.floor(danoBase * 0.15);
-            danoFinal = danoBase - Math.floor(Math.random() * (variacao + 1));
-            // Habilidades fortes ganham tempo de recarga
-            if (danoBase > 25) atacante.cooldowns[nomeAtaque] = 3; 
-        }
+        let danoFinal = isUlt ? (Math.random() < 0.5 ? 60 : 75) : (danoBase - Math.floor(Math.random() * (Math.floor(danoBase * 0.15) + 1)));
+        if (isUlt) atacante.turnosRealizados = 0;
+        else if (danoBase > 25) atacante.cooldowns[nomeAtaque] = 3;
 
         alvo.hp -= danoFinal;
         atacante.turnosRealizados++;
 
-        // Reduz cooldowns das outras habilidades
-        for (let chave in atacante.cooldowns) {
-            if (atacante.cooldowns[chave] > 0) atacante.cooldowns[chave]--;
-        }
+        for (let chave in atacante.cooldowns) { if (atacante.cooldowns[chave] > 0) atacante.cooldowns[chave]--; }
 
         sala.turno = alvo.id;
 
         io.to(salaId).emit('atualizarBatalha', {
-            atacante: atacante.id, 
-            dano: danoFinal, 
-            nomeAtaque,
+            atacante: atacante.id, dano: danoFinal, nomeAtaque,
             novoHpAlvo: Math.max(0, (alvo.hp / alvo.hpMax) * 100),
             proximoTurno: sala.turno,
             statsP1: { id: sala.p1.id, turnos: sala.p1.turnosRealizados, cds: sala.p1.cooldowns },
@@ -197,11 +188,13 @@ io.on('connection', (socket) => {
         if (alvo.hp <= 0) {
             clearTimeout(sala.timer);
             
-            // Atualiza pontos no banco de dados
-            if (usuarios[atacante.username]) usuarios[atacante.username].pontos += 50;
-            if (usuarios[alvo.username]) {
-                usuarios[alvo.username].pontos = Math.max(0, usuarios[alvo.username].pontos - 25);
-            }
+            // ATUALIZAÇÃO NO BANCO DE DADOS (Persistente)
+            try {
+                await User.findOneAndUpdate({ username: atacante.username }, { $inc: { pontos: 50 } });
+                await User.findOneAndUpdate({ username: alvo.username }, { $inc: { pontos: -25 } });
+                // Garante que pontos não fiquem negativos
+                await User.updateOne({ username: alvo.username, pontos: { $lt: 0 } }, { pontos: 0 });
+            } catch (e) { console.error("Erro ao atualizar pontos:", e); }
 
             io.to(salaId).emit('fimBatalha', { vencedor: atacante.id });
             delete salas[salaId];
@@ -212,10 +205,9 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         fila = fila.filter(p => p.id !== socket.id);
-        // Opcional: Lógica para encerrar salas se um jogador cair
     });
 });
 
 http.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`Servidor anistats.fun rodando na porta ${PORT}`);
 });
