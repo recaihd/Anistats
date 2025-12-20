@@ -15,7 +15,7 @@
     let meusStatus = { turnos: 0, cds: {} }, cronometroFront = null;
     const IMG_PADRAO = "img/default_avatar.webp";
 
-    // --- SISTEMA DE COOKIES OTIMIZADO ---
+   
     function setCookie(n, v, d) {
         const date = new Date();
         date.setTime(date.getTime() + (d * 24 * 60 * 60 * 1000));
@@ -49,7 +49,7 @@
         }
     };
 
-    // --- LOGIN E PERFIL ---
+    // login e perfil
     function fazerLogin() {
         const u = document.getElementById('login-user').value.trim();
         const p = document.getElementById('login-pass').value.trim();
@@ -84,7 +84,7 @@
         setCookie("auth_anistats", meuUsuario, 30);
     });
 
-    // --- RANKING ---
+    // ranking do jogo
     function toggleRanking() {
         const m = document.getElementById('ranking-modal');
         m.classList.toggle('hidden');
@@ -212,7 +212,7 @@
         const title = document.getElementById('result-title');
         const change = document.getElementById('result-change');
 
-        // Atualização de pontos local para o header
+        // atualização de pontos local para o header
         if (venci) {
             meuUsuario.pontos += 50;
         } else {

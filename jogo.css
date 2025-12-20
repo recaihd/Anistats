@@ -69,7 +69,7 @@
     z-index: 100;
 }
 
-/* A Setinha (Triângulo) */
+
 .social-icon::before {
     position: absolute;
     bottom: 110%;
@@ -83,7 +83,7 @@
     z-index: 100;
 }
 
-/* Efeito Hover */
+
 .social-icon:hover::after, 
 .social-icon:hover::before {
     opacity: 1;
@@ -155,7 +155,7 @@
             100% { transform: scale(1); }
         }
 
-        /* ANIMAÇÕES DE DANO */
+        
         @keyframes shake {
             0%, 100% { transform: translate(0,0); }
             20% { transform: translate(-5px, 0); }
@@ -165,43 +165,41 @@
         }
         .shake { animation: shake 0.4s; }
 
-/* CONTAINER DO BOTÃO JOGAR */
+
 .btn-wrapper {
     position: relative;
     display: inline-block;
     margin-top: 20px;
 }
 
-/* O GIF DE DANÇA */
+
 .hover-gif {
     position: absolute;
-    bottom: 80%; /* Posiciona acima do botão */
+    bottom: 80%; 
     left: 50%;
     transform: translateX(-50%) translateY(10px);
-    width: 80px; /* Ajuste o tamanho conforme preferir */
+    width: 80px; 
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
-    pointer-events: none; /* Garante que o mouse clique no botão, não no gif */
+    pointer-events: none;
     z-index: 15;
 }
 
-/* MOSTRAR GIF NO HOVER */
+
 .btn-wrapper:hover .hover-gif {
     opacity: 1;
     visibility: visible;
     transform: translateX(-50%) translateY(0);
 }
 
-/* AJUSTE NO BOTÃO PARA CABER NO WRAPPER */
+
 .btn-primary {
     position: relative;
     z-index: 10;
 }
 
-/* --- NOVOS ESTILOS: LOGIN, RANKING E PERFIL --- */
 
-/* Modal de Login e Ranking */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -232,7 +230,7 @@
     color: var(--primary-pink);
 }
 
-/* Inputs de Texto */
+
 .input-field {
     width: 100%;
     padding: 12px 15px;
@@ -251,7 +249,7 @@
     background: rgba(255, 255, 255, 0.1);
 }
 
-/* Info do Usuário no Header */
+
 .user-info-bar {
     display: flex;
     align-items: center;
@@ -280,7 +278,7 @@
     color: var(--primary-pink);
 }
 
-/* Estilo do Ranking */
+
 .ranking-list {
     max-height: 400px;
     overflow-y: auto;
@@ -325,7 +323,7 @@
     font-weight: 800;
 }
 
-/* Botões Adicionais */
+
 .btn-secondary {
     background: transparent;
     color: white;
@@ -342,7 +340,7 @@
     background: var(--primary-pink);
 }
 
-/* Botão Flutuante de Ranking */
+
 .btn-ranking-toggle {
     position: fixed;
     bottom: 20px;
@@ -365,9 +363,7 @@
     filter: brightness(0) invert(1);
 }
 
-/* --- NOVOS ESTILOS PARA BATALHA E RESULTADOS --- */
 
-/* Estilo para as fotos dos jogadores na Arena */
 .player-profile {
     display: flex;
     align-items: center;
@@ -410,7 +406,7 @@
     color: white;
 }
 
-/* Telas de Resultado (Vitória/Derrota) */
+
 .result-screen {
     position: fixed;
     top: 0;
@@ -465,18 +461,18 @@
     to { opacity: 1; transform: scale(1); }
 }
 
-/* Transição de Background */
+
 #bg-video {
     transition: opacity 1s ease-in-out;
 }
 
-/* Ajuste na Arena para caber os perfis */
+
 .arena-grid {
     max-width: 1000px;
     margin: 0 auto;
 }
 
-/* Scrollbar Customizada para o Ranking */
+
 .ranking-list::-webkit-scrollbar { width: 5px; }
 .ranking-list::-webkit-scrollbar-track { background: transparent; }
 .ranking-list::-webkit-scrollbar-thumb { background: var(--primary-pink); border-radius: 10px; }

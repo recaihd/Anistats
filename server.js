@@ -10,12 +10,12 @@ const MONGO_URI = process.env.MONGO_URI;
 
 app.use(express.static(__dirname));
 
-// --- CONEXÃO COM MONGODB ---
+// conexão com o mongo
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ Conectado ao MongoDB Atlas"))
     .catch(err => console.error("❌ Erro ao conectar ao MongoDB:", err));
 
-// --- MODELO DE USUÁRIO ---
+
 const UserSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     senha: { type: String, required: true },
@@ -24,13 +24,13 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// --- VARIÁVEIS DE JOGO ---
+
 let fila = [];
 let salas = {}; 
 const TEMPO_TURNO = 20;
 const AVATAR_PADRAO = 'img/default_avatar.webp';
 
-// --- FUNÇÕES DE AUXÍLIO ---
+
 
 async function obterRanking() {
     try {
@@ -55,7 +55,7 @@ function passarTurnoPorInatividade(salaId) {
     const atacanteId = sala.turno;
     const alvo = atacanteId === sala.p1.id ? sala.p2 : sala.p1;
     
-    // Incrementa turno e reseta cooldowns por inatividade também
+    
     const atacante = atacanteId === sala.p1.id ? sala.p1 : sala.p2;
     atacante.turnosRealizados++;
     for (let chave in atacante.cooldowns) { if (atacante.cooldowns[chave] > 0) atacante.cooldowns[chave]--; }
@@ -74,7 +74,7 @@ function passarTurnoPorInatividade(salaId) {
     gerenciarTimer(salaId);
 }
 
-// --- COMUNICAÇÃO SOCKET.IO ---
+
 
 io.on('connection', (socket) => {
     
@@ -85,7 +85,7 @@ io.on('connection', (socket) => {
             if (usuario) {
                 if (usuario.senha === senha) {
                     const uObj = usuario.toObject();
-                    delete uObj.senha; // Não envia a senha para o front
+                    delete uObj.senha; // não envia a senha para o front
                     socket.emit('loginSucesso', uObj);
                 } else {
                     socket.emit('erroLogin', "Senha incorreta!");
@@ -122,7 +122,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('procurarPartida', (dadosChar) => {
-        // Remove duplicatas na fila
+        
         fila = fila.filter(p => p.username !== dadosChar.username);
         
         fila.push({ 
@@ -218,5 +218,5 @@ io.on('connection', (socket) => {
 });
 
 http.listen(PORT, () => {
-    console.log(`✅ Servidor Anistats rodando na porta ${PORT}`);
+    console.log(` Servidor Anistats rodando na porta ${PORT}`);
 });
