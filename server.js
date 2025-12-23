@@ -26,7 +26,7 @@ const User = mongoose.model('User', UserSchema);
 
 
 let fila = [];
-let salas = {}; 
+let salas = {};
 const TEMPO_TURNO = 20;
 const AVATAR_PADRAO = 'img/default_avatar.webp';
 
@@ -54,8 +54,8 @@ function passarTurnoPorInatividade(salaId) {
 
     const atacanteId = sala.turno;
     const alvo = atacanteId === sala.p1.id ? sala.p2 : sala.p1;
-    
-    
+
+
     const atacante = atacanteId === sala.p1.id ? sala.p1 : sala.p2;
     atacante.turnosRealizados++;
     for (let chave in atacante.cooldowns) { if (atacante.cooldowns[chave] > 0) atacante.cooldowns[chave]--; }
@@ -77,7 +77,7 @@ function passarTurnoPorInatividade(salaId) {
 
 
 io.on('connection', (socket) => {
-    
+
     socket.on('solicitarLogin', async ({ username, senha }) => {
         try {
             let usuario = await User.findOne({ username });
@@ -106,14 +106,14 @@ io.on('connection', (socket) => {
         try {
             const usuario = await User.findOne({ username: dados.username }).select('-senha');
             if (usuario) socket.emit('loginSucesso', usuario);
-        } catch (e) {}
+        } catch (e) { }
     });
 
     socket.on('atualizarAvatar', async ({ username, avatar }) => {
         try {
             await User.findOneAndUpdate({ username }, { avatar });
             socket.emit('avatarAtualizado', avatar);
-        } catch (e) {}
+        } catch (e) { }
     });
 
     socket.on('obterRanking', async () => {
@@ -122,12 +122,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('procurarPartida', (dadosChar) => {
-        
+
         fila = fila.filter(p => p.username !== dadosChar.username);
-        
-        fila.push({ 
-            id: socket.id, 
-            char: dadosChar, 
+
+        fila.push({
+            id: socket.id,
+            char: dadosChar,
             username: dadosChar.username,
             avatar: dadosChar.avatar || AVATAR_PADRAO
         });
@@ -151,10 +151,10 @@ io.on('connection', (socket) => {
                     timer: null
                 };
 
-                io.to(salaId).emit('startBattle', { 
-                    player1: { ...p1.char, username: p1.username, avatar: p1.avatar }, 
-                    player2: { ...p2.char, username: p2.username, avatar: p2.avatar }, 
-                    p1Id: p1.id, p2Id: p2.id, salaId 
+                io.to(salaId).emit('startBattle', {
+                    player1: { ...p1.char, username: p1.username, avatar: p1.avatar },
+                    player2: { ...p2.char, username: p2.username, avatar: p2.avatar },
+                    p1Id: p1.id, p2Id: p2.id, salaId
                 });
                 gerenciarTimer(salaId);
             }
@@ -171,7 +171,7 @@ io.on('connection', (socket) => {
         if (atacante.cooldowns[nomeAtaque] > 0) return;
 
         let danoFinal = isUlt ? (Math.random() < 0.5 ? 60 : 75) : (danoBase - Math.floor(Math.random() * (Math.floor(danoBase * 0.15) + 1)));
-        
+
         if (isUlt) atacante.turnosRealizados = 0;
         else if (danoBase > 25) atacante.cooldowns[nomeAtaque] = 3;
 
@@ -193,7 +193,7 @@ io.on('connection', (socket) => {
         if (alvo.hp <= 0) {
             clearTimeout(sala.timer);
             const winnerId = atacante.id;
-            
+
             try {
                 // Ganha 50 pontos
                 await User.findOneAndUpdate({ username: atacante.username }, { $inc: { pontos: 50 } });
@@ -212,8 +212,34 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
         fila = fila.filter(p => p.id !== socket.id);
+
+        // Verificar se estava em batalha
+        const salaId = Object.keys(salas).find(id => salas[id].p1.id === socket.id || salas[id].p2.id === socket.id);
+        if (salaId) {
+            const sala = salas[salaId];
+            clearTimeout(sala.timer);
+
+            const desconectouP1 = sala.p1.id === socket.id;
+            const vencedor = desconectouP1 ? sala.p2 : sala.p1;
+            const perdedor = desconectouP1 ? sala.p1 : sala.p2;
+
+            try {
+                // Vencedor ganha 50
+                await User.findOneAndUpdate({ username: vencedor.username }, { $inc: { pontos: 50 } });
+
+                // Perdedor perde 25
+                const userPerdedor = await User.findOne({ username: perdedor.username });
+                if (userPerdedor) {
+                    let novosPontos = Math.max(0, userPerdedor.pontos - 25);
+                    await User.updateOne({ username: perdedor.username }, { $set: { pontos: novosPontos } });
+                }
+            } catch (e) { console.error("Erro ao atualizar pontos na desconexão:", e); }
+
+            io.to(salaId).emit('fimBatalha', { vencedor: vencedor.id, motivo: 'disconnect' });
+            delete salas[salaId];
+        }
     });
 });
 
