@@ -8,7 +8,10 @@ const personagensManuais = [
     { id: 6, nome: "Roxy", img: "img/roxy.png", hp: 150, ataques: [{ n: "Water Splash", d: 30 }, { n: "Cajado", d: 16 }], ult: "Canto do Oceano" },
     { id: 7, nome: "Megumin", img: "img/megumin.png", hp: 150, ataques: [{ n: "EXPLOSION!", d: 37 }, { n: "Cajadada", d: 16 }], ult: "GRANDE EXPLOSÃO" },
     { id: 8, nome: "Zero Two", img: "img/zerotwo.png", hp: 150, ataques: [{ n: "Strelizia", d: 32 }, { n: "Garra", d: 16 }], ult: "Fúria de Klaxossauro" },
-    { id: 9, nome: "Miku", img: "img/miku.png", hp: 150, ataques: [{ n: "Beijo do Amor", d: 32 }, { n: "Soco Fofo", d: 15 }], ult: "Sinfonia Digital" }
+    { id: 9, nome: "Miku", img: "img/miku.png", hp: 150, ataques: [{ n: "Beijo do Amor", d: 32 }, { n: "Soco Fofo", d: 15 }], ult: "Sinfonia Digital" },
+    { id: 10, nome: "ayanami", img: "img/rei.png", hp: 150, ataques: [{ n: "Manipulação de Energia", d: 34 }, { n: "Levitação", d: 17 }], ult: "Transferência de Alma" },
+    { id: 11, nome: "Elaine", img: "img/elaine.png", hp: 150, ataques: [{ n: "Manipulação do Ambiente", d: 33 }, { n: "Ataque Psicológico", d: 16 }], ult: "Mana Explosiva" },
+    { id: 12, nome: "Elaine", img: "img/nyaruko.png", hp: 150, ataques: [{ n: "Super Força", d: 32 }, { n: "Explosivos", d: 15 }], ult: "Transformação" }
 ];
 
 let minhaSala = null, meuPersonagem = null, meuTurno = false, meuUsuario = null;
