@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const app = express();
 const http = require('http').createServer(app);
@@ -241,6 +242,10 @@ io.on('connection', (socket) => {
             delete salas[salaId];
         }
     });
+});
+
+app.use((req, res) => {
+    res.status(404).sendFile(path.join(__dirname, '404.html'));
 });
 
 http.listen(PORT, () => {
